@@ -1,0 +1,2801 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão de Compras</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Times New Roman", Times, serif;
+    background: #f2f2f2;
+    color: #111;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: #000;
+    color: #fff;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #333;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-left img {
+    height: 84px;
+    width: auto;
+    background: #000;
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+  .header-left .divider {
+    width: 1px;
+    height: 40px;
+    background: #444;
+  }
+  .header-top h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .sync-status {
+    font-size: 12px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sync-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4ade80;
+    display: inline-block;
+  }
+  .sync-dot.saving { background: #facc15; }
+  .sync-dot.error { background: #f87171; }
+
+  nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  nav button {
+    background: transparent;
+    border: none;
+    color: #999;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+  nav button:hover { color: #fff; }
+  nav button.active {
+    color: #fff;
+    border-bottom-color: #fff;
+  }
+
+  main {
+    width: 100%;
+    margin: 0;
+    padding: 28px 40px;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .panel-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .panel-sub {
+    font-size: 13px;
+    color: #666;
+    margin-top: 2px;
+  }
+
+  .btn {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:hover { background: #222; }
+  .btn.secondary {
+    background: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+  }
+  .btn.secondary:hover { background: #f5f5f5; }
+  .btn.danger { background: #fff; color: #d33; border: 1px solid #d33; }
+  .btn.danger:hover { background: #fff0f0; }
+  .btn.small { padding: 6px 10px; font-size: 12px; }
+
+  /* ===== TABLE ===== */
+  .table-wrap {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    min-width: 900px;
+  }
+  thead th {
+    background: #000;
+    color: #fff;
+    text-align: left;
+    padding: 12px 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    color: #111;
+  }
+  tbody tr:hover { background: #fafafa; }
+  tbody tr.total-row {
+    background: #f0f0f0;
+    font-weight: 700;
+  }
+  tbody tr.total-row td { border-top: 2px solid #000; }
+
+  input.cell-input {
+    width: 120px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 13.5px;
+  }
+  input.cell-input:focus { outline: 2px solid #000; border-color: #000; }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .badge-ok { background: #dcfce7; color: #15803d; }
+  .badge-atencao { background: #fef9c3; color: #a16207; }
+  .badge-estourado { background: #fee2e2; color: #b91c1c; }
+  .badge-sem { background: #f0f0f0; color: #666; }
+  .badge-ativo { background: #dcfce7; color: #15803d; }
+  .badge-inativo { background: #fee2e2; color: #b91c1c; }
+  .badge-homolog { background: #fef9c3; color: #a16207; }
+  .badge-info { background: #dbeafe; color: #1d4ed8; }
+  .badge-purple { background: #ede9fe; color: #6d28d9; }
+  .badge-pendente { background: #f0f0f0; color: #555; }
+  .badge-cancelado { background: #fee2e2; color: #b91c1c; }
+  .badge-laranja { background: #ffedd5; color: #c2410c; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    background: #000; color: #fff;
+    padding: 16px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-radius: 12px 12px 0 0;
+  }
+  .modal-header h3 { font-size: 16px; }
+  .modal-close { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #333;
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+  .field input:focus, .field select:focus { outline: 2px solid #000; border-color: #000; }
+  .modal-footer {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 16px 20px; border-top: 1px solid #eee;
+  }
+
+  .search-box {
+    position: relative;
+    max-width: 340px;
+    width: 100%;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 10px 14px 10px 36px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-family: inherit;
+  }
+  .search-box input:focus { outline: 2px solid #000; border-color: #000; }
+  .search-box::before {
+    content: "🔍";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: 0.6;
+  }
+
+  .add-category-box {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    max-width: 420px;
+  }
+  .add-category-box input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .add-category-box input:focus { outline: 2px solid #000; border-color: #000; }
+  .icon-btn {
+    background: none;
+    border: none;
+    color: #b91c1c;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .icon-btn:hover { color: #7f1d1d; }
+  input.category-input {
+    width: 180px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 13.5px;
+    font-family: inherit;
+    font-weight: 600;
+  }
+  input.category-input:focus { outline: 2px solid #000; border-color: #000; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-user {
+    font-size: 13px;
+    color: #ccc;
+  }
+  .header-icon-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .header-icon-btn:hover { background: #222; }
+
+  /* ===== LOGIN SCREEN ===== */
+  #loginScreen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    padding: 20px;
+  }
+  #loginScreen.hidden { display: none; }
+  .app-hidden { display: none !important; }
+  .login-card {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+  .login-card img {
+    height: 70px;
+    margin-bottom: 18px;
+  }
+  .login-card h2 {
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+  .login-card p {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+  .login-field { text-align: left; margin-bottom: 14px; }
+  .login-field label {
+    display: block;
+    color: #ccc;
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+  .login-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .login-field input:focus { outline: 2px solid #e5342a; border-color: #e5342a; }
+  .login-remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .login-remember input { width: auto; }
+  .login-remember label {
+    color: #ccc;
+    font-size: 12.5px;
+    margin: 0;
+  }
+  .login-btn {
+    width: 100%;
+    background: #e5342a;
+    color: #fff;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 6px;
+    font-family: inherit;
+  }
+  .login-btn:hover { background: #c72a21; }
+  .login-error {
+    color: #f87171;
+    font-size: 12.5px;
+    margin-top: 10px;
+    min-height: 16px;
+  }
+  .login-hint {
+    color: #666;
+    font-size: 11.5px;
+    margin-top: 16px;
+  }
+
+  /* ===== DASHBOARD ===== */
+  #tab-dashboard {
+    background: linear-gradient(160deg, #0d1128 0%, #171236 55%, #1c1440 100%);
+    margin: -28px -40px;
+    padding: 28px 40px;
+    min-height: calc(100vh - 84px);
+    border-radius: 0;
+  }
+  #tab-dashboard .panel-header h2 { color: #fff; }
+  #tab-dashboard .panel-sub { color: #9ea3c9; }
+
+  .dash-filter-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+  }
+  .dash-filter-bar .field label {
+    color: #b6bae0;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .dash-filter-bar .field input {
+    background: #12163a;
+    border: 1px solid #33397a;
+    color: #fff;
+    min-width: 150px;
+  }
+  .dash-filter-btn {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    border: none;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13.5px;
+  }
+  .dash-filter-btn:hover { opacity: 0.9; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: linear-gradient(155deg, rgba(99,102,241,0.18), rgba(168,85,247,0.10));
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 24px rgba(76, 29, 149, 0.25);
+  }
+  .kpi-label {
+    color: #b6bae0;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .kpi-sub { font-size: 11.5px; color: #8b90c4; margin-top: 4px; }
+
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .dash-grid.two-col { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 900px) {
+    .dash-grid, .dash-grid.two-col { grid-template-columns: 1fr; }
+  }
+
+  .dash-card {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .dash-card h3 {
+    color: #fff;
+    font-size: 14.5px;
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+  .dash-card-canvas-wrap { position: relative; height: 260px; }
+
+  .dash-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px;
+  }
+  .dash-list-item:last-child { border-bottom: none; }
+  .dash-list-name { color: #e4e6fb; }
+  .dash-list-meta { color: #9ea3c9; font-size: 11.5px; }
+  .dash-list-value { color: #4ade80; font-weight: 700; text-align: right; }
+  .dash-list-value.warn { color: #facc15; }
+  .dash-list-value.danger { color: #f87171; }
+
+  .dash-empty { color: #7d81ab; font-size: 12.5px; text-align: center; padding: 24px 0; }
+
+  .dash-print-btn {
+    background: #fff; color: #000; border: none; padding: 8px 16px;
+    border-radius: 6px; font-weight: 700; font-size: 12px; letter-spacing: 0.4px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .dash-print-btn:hover { background: #e5e5e5; }
+
+  .print-report-header { display: none; }
+
+  @media print {
+    #appHeader, #loginScreen { display: none !important; }
+    body { background: #fff !important; }
+    #appMain { padding: 0 !important; margin: 0 !important; }
+    #tab-dashboard {
+      background: #fff !important; padding: 24px; min-height: auto; margin: 0;
+      font-size: 15px;
+    }
+    #tab-dashboard .dash-filter-bar, #tab-dashboard .dash-filter-btn, #tab-dashboard #btnPrintDashboard { display: none !important; }
+    .print-report-header {
+      display: flex !important; align-items: center; gap: 14px; margin-bottom: 18px;
+      border-bottom: 3px solid #000; padding-bottom: 14px;
+    }
+    .print-report-header img { height: 46px; }
+    .print-report-header .prh-text h1 { font-size: 21px; color: #000; }
+    .print-report-header .prh-text p { font-size: 13px; color: #000; }
+    #tab-dashboard .panel-header h2 { color: #000 !important; font-size: 20px; }
+    #tab-dashboard .panel-sub { color: #000 !important; font-size: 13.5px; }
+    #tab-dashboard .kpi-card, #tab-dashboard .dash-card {
+      background: #fff !important; border: 2px solid #000 !important; box-shadow: none !important;
+      break-inside: avoid; page-break-inside: avoid;
+    }
+    #tab-dashboard .kpi-label { color: #000 !important; font-size: 12.5px; }
+    #tab-dashboard .kpi-value { color: #000 !important; font-size: 26px; }
+    #tab-dashboard .kpi-sub { color: #000 !important; font-size: 12px; }
+    #tab-dashboard .dash-card h3 { color: #000 !important; font-size: 16px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+    #tab-dashboard .dash-list-item { border-bottom: 1.5px solid #000 !important; }
+    #tab-dashboard .dash-list-name { color: #000 !important; font-size: 14px; }
+    #tab-dashboard .dash-list-meta { color: #000 !important; font-size: 12.5px; }
+    #tab-dashboard .dash-list-value { color: #0a7d2c !important; font-size: 14.5px; }
+    #tab-dashboard .dash-empty { color: #000 !important; }
+    #tab-dashboard .dash-table-wrap { background: #fff !important; border: 2px solid #000 !important; }
+    #tab-dashboard .dash-table-wrap table { font-size: 13.5px; }
+    #tab-dashboard .dash-table-wrap thead th { background: #000 !important; color: #fff !important; border: 1.5px solid #000 !important; }
+    #tab-dashboard .dash-table-wrap tbody td { color: #000 !important; border: 1.5px solid #000 !important; }
+    #tab-dashboard .dash-grid, #tab-dashboard .dash-grid.two-col { grid-template-columns: 1fr 1fr !important; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #888;
+  }
+  .placeholder-box {
+    background: #fff;
+    border: 1px dashed #ccc;
+    border-radius: 10px;
+    padding: 60px 20px;
+    text-align: center;
+    color: #888;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: #000; color: #fff;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 200;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.25s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <img id="loginLogo" src="" alt="Logo">
+    <h2 id="loginTitle">Entrar no sistema</h2>
+    <p id="loginSubtitle">Acesso restrito à equipe de compras</p>
+
+    <div class="login-field" id="loginNomeField" style="display:none;">
+      <label>Seu nome</label>
+      <input type="text" id="loginNome" placeholder="Ex: João Silva">
+    </div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="loginUsuario" placeholder="usuario">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="loginSenha" placeholder="••••••••">
+    </div>
+    <div class="login-remember">
+      <input type="checkbox" id="loginRemember">
+      <label for="loginRemember">Manter-me conectado neste computador</label>
+    </div>
+    <button class="login-btn" id="btnDoLogin">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint" id="loginHint"></div>
+  </div>
+</div>
+
+
+
+<header id="appHeader" class="app-hidden">
+  <div class="header-top">
+    <div class="header-left">
+      <img src="data:image/png;base64,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" alt="Logo da empresa">
+      <div class="divider"></div>
+      <h1>Gestão de Compras</h1>
+    </div>
+    <div class="header-right">
+      <span class="header-user" id="headerUserLabel"></span>
+      <button class="header-icon-btn" id="btnManageUsers">Usuários</button>
+      <button class="header-icon-btn" id="btnLogout">Sair</button>
+      <div class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">Sincronizado</span></div>
+    </div>
+  </div>
+  <nav id="tabNav">
+    <button data-tab="orcamento" class="active">Orçamento por Categoria</button>
+    <button data-tab="fornecedores">Fornecedores</button>
+    <button data-tab="pedidos">Pedidos de Compra</button>
+    <button data-tab="cotacoes">Comparativo de Cotações</button>
+    <button data-tab="dashboard">Dashboard</button>
+  </nav>
+</header>
+
+<main id="appMain" class="app-hidden">
+
+  <!-- ORÇAMENTO -->
+  <section class="tab-panel active" id="tab-orcamento">
+    <div class="panel-header">
+      <div>
+        <h2>Orçamento por Categoria</h2>
+        <div class="panel-sub">Defina o orçamento previsto de cada categoria. Gasto realizado é calculado automaticamente a partir dos pedidos de compra.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Categoria</th>
+            <th>Orçamento Previsto (R$)</th>
+            <th>Gasto Realizado (R$)</th>
+            <th>Saldo Restante (R$)</th>
+            <th>% Utilizada</th>
+            <th>Situação</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="budgetTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="add-category-box">
+      <input type="text" id="newCategoryInput" placeholder="Nome da nova categoria">
+      <button class="btn secondary" id="btnAddCategory">+ Adicionar categoria</button>
+    </div>
+  </section>
+
+  <!-- FORNECEDORES -->
+  <section class="tab-panel" id="tab-fornecedores">
+    <div class="panel-header">
+      <div>
+        <h2>Cadastro de Fornecedores</h2>
+        <div class="panel-sub">Fornecedores disponíveis para vincular a pedidos e cotações.</div>
+      </div>
+      <button class="btn" id="btnNewSupplier">+ Novo Fornecedor</button>
+    </div>
+    <div class="search-box" style="margin-bottom:14px;">
+      <input type="text" id="supplierSearchInput" placeholder="Buscar por nome, CNPJ ou categoria...">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nome</th>
+            <th>CNPJ</th>
+            <th>Contato</th>
+            <th>E-mail</th>
+            <th>Categoria</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="suppliersTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PEDIDOS -->
+  <section class="tab-panel" id="tab-pedidos">
+    <div class="panel-header">
+      <div>
+        <h2>Pedidos de Compra</h2>
+        <div class="panel-sub">Todos os pedidos solicitados, com valores calculados automaticamente e status de acompanhamento.</div>
+      </div>
+      <button class="btn" id="btnNewOrder">+ Novo Pedido</button>
+    </div>
+    <div class="search-box" style="margin-bottom:14px;">
+      <input type="text" id="orderSearchInput" placeholder="Buscar por número, item, fornecedor ou solicitante...">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Data Solicitação</th>
+            <th>Solicitante</th>
+            <th>Item / Material</th>
+            <th>Categoria</th>
+            <th>Fornecedor</th>
+            <th>Qtd</th>
+            <th>Valor Unit.</th>
+            <th>Valor Total</th>
+            <th>Status</th>
+            <th>Data Compra</th>
+            <th>Prazo Entrega</th>
+            <th>Data Entrega</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="ordersTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- COTAÇÕES -->
+  <section class="tab-panel" id="tab-cotacoes">
+    <div class="panel-header">
+      <div>
+        <h2>Comparativo de Cotações</h2>
+        <div class="panel-sub">Registre até 3 cotações por item e veja a economia obtida ao escolher a melhor proposta.</div>
+      </div>
+      <button class="btn" id="btnNewQuote">+ Nova Cotação</button>
+    </div>
+    <div class="search-box" style="margin-bottom:14px;">
+      <input type="text" id="quoteSearchInput" placeholder="Buscar por número, item ou fornecedor...">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item / Material</th>
+            <th>Categoria</th>
+            <th>Data</th>
+            <th>Fornecedor 1</th>
+            <th>Preço 1</th>
+            <th>Fornecedor 2</th>
+            <th>Preço 2</th>
+            <th>Fornecedor 3</th>
+            <th>Preço 3</th>
+            <th>Escolhido</th>
+            <th>Preço Escolhido</th>
+            <th>Maior Preço</th>
+            <th>Economia (R$)</th>
+            <th>Economia (%)</th>
+            <th>Pedidos Vinculados</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="quotesTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="tab-panel" id="tab-dashboard">
+    <div class="panel-header">
+      <div>
+        <h2>Dashboard de Gestão de Compras</h2>
+        <div class="panel-sub">Visão geral do período selecionado</div>
+      </div>
+      <button class="dash-print-btn" id="btnPrintDashboard">🖨 IMPRESSÃO</button>
+    </div>
+
+    <div class="print-report-header">
+      <img id="printReportLogo" src="" alt="Logo">
+      <div class="prh-text">
+        <h1>Dashboard de Gestão de Compras — Puma Gases</h1>
+        <p id="printReportDate">Relatório emitido em -</p>
+      </div>
+    </div>
+
+    <div id="dashChartWarning" style="display:none; background:#3b1d1d; border:1px solid #7f1d1d; color:#fecaca; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:13px;">
+      ⚠ Não foi possível carregar a biblioteca de gráficos (provavelmente por causa da conexão de internet ou de um bloqueio de rede/firewall). Os números continuam corretos nas outras abas — tente recarregar a página em uma rede diferente, ou avise seu time de TI para liberar o domínio <strong>cdn.jsdelivr.net</strong>.
+    </div>
+
+    <div class="dash-filter-bar">
+      <div class="field">
+        <label>De</label>
+        <input type="date" id="dashDataInicio">
+      </div>
+      <div class="field">
+        <label>Até</label>
+        <input type="date" id="dashDataFim">
+      </div>
+      <button class="dash-filter-btn" id="btnDashFiltrar">Filtrar</button>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total de Pedidos</div>
+        <div class="kpi-value" id="kpiTotalPedidos">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Gasto Realizado</div>
+        <div class="kpi-value" id="kpiGastoRealizado">R$ 0,00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Economia Total</div>
+        <div class="kpi-value" id="kpiEconomiaTotal">R$ 0,00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Economia (%)</div>
+        <div class="kpi-value" id="kpiEconomiaPct">0%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pedidos Pendentes</div>
+        <div class="kpi-value" id="kpiPedidosPendentes">0</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h3>Evolução de Gastos no Período</h3>
+        <div class="dash-card-canvas-wrap"><canvas id="chartEvolucao"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3>Status dos Pedidos</h3>
+        <div class="dash-card-canvas-wrap"><canvas id="chartStatus"></canvas></div>
+      </div>
+    </div>
+
+    <div class="dash-grid two-col">
+      <div class="dash-card">
+        <h3>Gastos por Categoria</h3>
+        <div class="dash-card-canvas-wrap"><canvas id="chartCategoria"></canvas></div>
+      </div>
+      <div class="dash-card">
+        <h3>Ranking de Fornecedores (por valor comprado)</h3>
+        <div class="dash-card-canvas-wrap"><canvas id="chartFornecedores"></canvas></div>
+      </div>
+    </div>
+
+    <div class="dash-grid two-col">
+      <div class="dash-card">
+        <h3>Itens com Maior Economia no Período</h3>
+        <div id="dashTopEconomia"></div>
+      </div>
+      <div class="dash-card">
+        <h3>⚠ Categorias em Alerta (orçamento)</h3>
+        <div id="dashAlertasCategoria"></div>
+      </div>
+    </div>
+
+    <div class="dash-grid two-col">
+      <div class="dash-card">
+        <h3>⏰ Pedidos com Entrega Atrasada</h3>
+        <div id="dashAtrasos"></div>
+      </div>
+      <div class="dash-card">
+        <h3>Fornecedores Mais Utilizados (nº de pedidos)</h3>
+        <div class="dash-card-canvas-wrap"><canvas id="chartFornecedoresQtd"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- MODAL FORNECEDOR -->
+<div class="modal-overlay" id="supplierModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="supplierModalTitle">Novo Fornecedor</h3>
+      <button class="modal-close" id="closeSupplierModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="supplierId">
+      <div class="field">
+        <label>Código</label>
+        <input type="text" id="supplierCodigo" disabled>
+      </div>
+      <div class="field">
+        <label>Nome</label>
+        <input type="text" id="supplierNome" placeholder="Razão social ou nome fantasia">
+      </div>
+      <div class="field">
+        <label>CNPJ</label>
+        <input type="text" id="supplierCnpj" placeholder="00.000.000/0000-00">
+      </div>
+      <div class="field">
+        <label>Contato</label>
+        <input type="text" id="supplierContato" placeholder="Nome / telefone do contato">
+      </div>
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="supplierEmail" placeholder="contato@fornecedor.com">
+      </div>
+      <div class="field">
+        <label>Categoria</label>
+        <select id="supplierCategoria"></select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="supplierStatus">
+          <option value="Ativo">Ativo</option>
+          <option value="Inativo">Inativo</option>
+          <option value="Em homologação">Em homologação</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary" id="cancelSupplierModal">Cancelar</button>
+      <button class="btn" id="saveSupplierModal">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COTAÇÃO -->
+<div class="modal-overlay" id="quoteModal">
+  <div class="modal" style="max-width: 560px;">
+    <div class="modal-header">
+      <h3 id="quoteModalTitle">Nova Cotação</h3>
+      <button class="modal-close" id="closeQuoteModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="quoteId">
+      <div class="field">
+        <label>ID da Cotação</label>
+        <input type="text" id="quoteNumero" disabled>
+      </div>
+      <div class="field">
+        <label>Item / Material</label>
+        <input type="text" id="quoteItem" placeholder="Ex: Cilindro de gás argônio">
+      </div>
+      <div class="field">
+        <label>Categoria</label>
+        <select id="quoteCategoria"></select>
+      </div>
+      <div class="field">
+        <label>Data da Cotação</label>
+        <input type="date" id="quoteData">
+      </div>
+
+      <hr style="border:none; border-top:1px solid #eee; margin: 6px 0;">
+
+      <div style="display:flex; gap:12px;">
+        <div class="field" style="flex:2;">
+          <label>Fornecedor 1</label>
+          <select id="quoteForn1"></select>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Preço (R$)</label>
+          <input type="number" id="quotePreco1" min="0" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <div class="field" style="flex:2;">
+          <label>Fornecedor 2</label>
+          <select id="quoteForn2"></select>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Preço (R$)</label>
+          <input type="number" id="quotePreco2" min="0" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <div class="field" style="flex:2;">
+          <label>Fornecedor 3</label>
+          <select id="quoteForn3"></select>
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Preço (R$)</label>
+          <input type="number" id="quotePreco3" min="0" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+
+      <hr style="border:none; border-top:1px solid #eee; margin: 6px 0;">
+
+      <div class="field">
+        <label>Fornecedor Escolhido</label>
+        <select id="quoteEscolhido"></select>
+      </div>
+      <div class="field">
+        <label>Pedidos de Compra Vinculados (opcional — pode marcar vários)</label>
+        <div id="quotePedidosCheckboxList" style="max-height:160px; overflow-y:auto; border:1px solid #ccc; border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:6px;"></div>
+        <div style="font-size:11.5px; color:#888; margin-top:4px;">A economia dessa cotação é dividida igualmente entre os pedidos marcados, e só entra no Dashboard conforme cada um for marcado como "Comprado".</div>
+      </div>
+
+      <div class="field" style="background:#f7f7f7; border-radius:8px; padding:12px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+          <span>Preço escolhido:</span><strong id="quotePrecoEscolhidoPreview">R$ 0,00</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+          <span>Maior preço cotado:</span><strong id="quoteMaiorPrecoPreview">R$ 0,00</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;">
+          <span>Economia:</span><strong id="quoteEconomiaPreview" style="color:#15803d;">R$ 0,00</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:13px;">
+          <span>Economia (%):</span><strong id="quoteEconomiaPctPreview" style="color:#15803d;">0%</strong>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary" id="cancelQuoteModal">Cancelar</button>
+      <button class="btn" id="saveQuoteModal">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PEDIDO -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal" style="max-width: 560px;">
+    <div class="modal-header">
+      <h3 id="orderModalTitle">Novo Pedido de Compra</h3>
+      <button class="modal-close" id="closeOrderModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="orderId">
+      <div class="field">
+        <label>Número do Pedido</label>
+        <input type="text" id="orderNumero" disabled>
+      </div>
+      <div class="field">
+        <label>Data da Solicitação</label>
+        <input type="date" id="orderData">
+      </div>
+      <div class="field">
+        <label>Solicitante</label>
+        <input type="text" id="orderSolicitante" placeholder="Nome de quem está solicitando">
+      </div>
+      <div class="field">
+        <label>Item / Material Solicitado</label>
+        <input type="text" id="orderItem" placeholder="Ex: Papel A4, resma">
+      </div>
+      <div class="field">
+        <label>Categoria</label>
+        <select id="orderCategoria"></select>
+      </div>
+      <div class="field">
+        <label>Fornecedor</label>
+        <select id="orderFornecedor"></select>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <div class="field" style="flex:1;">
+          <label>Quantidade</label>
+          <input type="number" id="orderQuantidade" min="0" step="1" placeholder="0">
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Valor Unitário (R$)</label>
+          <input type="number" id="orderValorUnitario" min="0" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      <div class="field">
+        <label>Valor Total (calculado automaticamente)</label>
+        <input type="text" id="orderValorTotal" disabled style="font-weight:700;">
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="orderStatus"></select>
+      </div>
+      <div class="field">
+        <label>Data da Compra <span id="orderDataCompraHint" style="font-weight:400; color:#888;"></span></label>
+        <input type="date" id="orderDataCompra">
+      </div>
+      <div style="display:flex; gap:12px;">
+        <div class="field" style="flex:1;">
+          <label>Prazo de Entrega</label>
+          <input type="date" id="orderPrazoEntrega">
+        </div>
+        <div class="field" style="flex:1;">
+          <label>Data da Entrega</label>
+          <input type="date" id="orderDataEntrega">
+        </div>
+      </div>
+      <div class="field">
+        <label>Observações</label>
+        <input type="text" id="orderObservacoes" placeholder="Contexto da compra, uso, urgência...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary" id="cancelOrderModal">Cancelar</button>
+      <button class="btn" id="saveOrderModal">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUÁRIOS -->
+<div class="modal-overlay" id="usersModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Gerenciar Usuários</h3>
+      <button class="modal-close" id="closeUsersModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="table-wrap" style="border-radius:8px;">
+        <table style="min-width:0;">
+          <thead>
+            <tr><th>Nome</th><th>Usuário</th><th></th></tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+
+      <div style="border-top:1px solid #eee; margin-top:6px; padding-top:16px;">
+        <div class="field" style="margin-bottom:12px;">
+          <label>Nome</label>
+          <input type="text" id="newUserNome" placeholder="Nome da pessoa">
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label>Usuário</label>
+          <input type="text" id="newUserUsuario" placeholder="usuario.login">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="text" id="newUserSenha" placeholder="senha de acesso">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary" id="cancelUsersModal">Fechar</button>
+      <button class="btn" id="saveNewUser">+ Adicionar usuário</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+// ============ FIREBASE ============
+const firebaseConfig = {
+  apiKey: "AIzaSyBoLEibpnN-XV1JPW8S-SM1QuISgdbm_ac",
+  authDomain: "puma-gases-compras-4f99b.firebaseapp.com",
+  projectId: "puma-gases-compras-4f99b",
+  storageBucket: "puma-gases-compras-4f99b.firebasestorage.app",
+  messagingSenderId: "780863478089",
+  appId: "1:780863478089:web:8a3e20094c39080ccda298"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ============ CONFIG ============
+const DEFAULT_CATEGORIES = [
+  "Matéria-prima",
+  "Escritório",
+  "TI e Software",
+  "Manutenção interna",
+  "Serviços terceirizados",
+  "Lacres/bananinhas",
+  "Equipamentos",
+  "Logística",
+  "Outros"
+];
+
+let categories = [...DEFAULT_CATEGORIES]; // lista editável de categorias
+let users = [];         // [{id, nome, usuario, senha}]
+let currentUser = null; // permanece só na sessão atual (não usamos localStorage)
+let budgets = {};      // { categoria: previsto }
+let suppliers = [];    // [{id, codigo, nome, cnpj, contato, email, categoria, status}]
+let orders = [];       // will be used in a later step to compute "gasto realizado"
+
+let currentlyEditingSupplierId = null;
+
+// ============ STORAGE HELPERS (Firebase Firestore) ============
+async function storageGet(key, fallback) {
+  try {
+    const doc = await db.collection('app_data').doc(key).get();
+    return doc.exists ? JSON.parse(doc.data().value) : fallback;
+  } catch (e) {
+    console.error('Erro ao ler', key, e);
+    return fallback;
+  }
+}
+async function storageSet(key, value) {
+  setSyncStatus('saving');
+  try {
+    await db.collection('app_data').doc(key).set({ value: JSON.stringify(value), updatedAt: Date.now() });
+    setSyncStatus('ok');
+  } catch (e) {
+    setSyncStatus('error');
+    console.error('Erro ao salvar', key, e);
+  }
+}
+
+function setSyncStatus(state) {
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  dot.className = 'sync-dot';
+  if (state === 'saving') { dot.classList.add('saving'); text.textContent = 'Salvando...'; }
+  else if (state === 'error') { dot.classList.add('error'); text.textContent = 'Erro ao salvar'; }
+  else { text.textContent = 'Sincronizado'; }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============ AUTENTICAÇÃO ============
+function getLogoSrc() {
+  const headerImg = document.querySelector('.header-left img');
+  return headerImg ? headerImg.src : '';
+}
+
+function nextUserId() {
+  return 'user_' + Date.now();
+}
+
+async function loadUsers() {
+  users = await storageGet('app_users', []);
+}
+
+function showLoginScreen() {
+  document.getElementById('loginLogo').src = getLogoSrc();
+  document.getElementById('appHeader').classList.add('app-hidden');
+  document.getElementById('appMain').classList.add('app-hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+
+  const isFirstRun = users.length === 0;
+  document.getElementById('loginNomeField').style.display = isFirstRun ? 'block' : 'none';
+  document.getElementById('loginTitle').textContent = isFirstRun ? 'Criar primeiro acesso' : 'Entrar no sistema';
+  document.getElementById('loginSubtitle').textContent = isFirstRun
+    ? 'Nenhum usuário cadastrado ainda. Crie o seu para começar.'
+    : 'Acesso restrito à equipe de compras';
+  document.getElementById('btnDoLogin').textContent = isFirstRun ? 'Criar e entrar' : 'Entrar';
+  document.getElementById('loginHint').textContent = isFirstRun
+    ? ''
+    : 'Esqueceu a senha? Peça para o gestor te cadastrar novamente em "Usuários".';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginUsuario').value = '';
+  document.getElementById('loginSenha').value = '';
+  document.getElementById('loginNome').value = '';
+}
+
+function hideLoginScreen() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appHeader').classList.remove('app-hidden');
+  document.getElementById('appMain').classList.remove('app-hidden');
+  document.getElementById('headerUserLabel').textContent = currentUser ? `Olá, ${currentUser.nome}` : '';
+}
+
+async function doLogin() {
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+
+  const usuario = document.getElementById('loginUsuario').value.trim();
+  const senha = document.getElementById('loginSenha').value;
+  const remember = document.getElementById('loginRemember').checked;
+  const isFirstRun = users.length === 0;
+
+  if (!usuario || !senha) {
+    errorEl.textContent = 'Preencha usuário e senha.';
+    return;
+  }
+
+  if (isFirstRun) {
+    const nome = document.getElementById('loginNome').value.trim();
+    if (!nome) { errorEl.textContent = 'Informe seu nome.'; return; }
+    const newUser = { id: nextUserId(), nome, usuario, senha, isAdmin: true };
+    users.push(newUser);
+    await storageSet('app_users', users);
+    currentUser = newUser;
+    if (remember) rememberUser(usuario, senha); else forgetRememberedUser();
+    hideLoginScreen();
+    await startApp();
+    return;
+  }
+
+  const found = users.find(u => u.usuario === usuario && u.senha === senha);
+  if (!found) {
+    errorEl.textContent = 'Usuário ou senha incorretos.';
+    return;
+  }
+  await ensureAdminFallback(found);
+  currentUser = found;
+  if (remember) rememberUser(usuario, senha); else forgetRememberedUser();
+  hideLoginScreen();
+  await startApp();
+}
+
+// Usuários criados antes do recurso de administrador não tinham a flag "isAdmin".
+// Se essa pessoa for a única conta existente, ela vira administradora automaticamente.
+async function ensureAdminFallback(user) {
+  if (!user.isAdmin && users.length === 1) {
+    user.isAdmin = true;
+    await storageSet('app_users', users);
+  }
+  // CORREÇÃO TEMPORÁRIA: promove esse usuário específico a administrador uma única vez.
+  // TODO: remover esse bloco depois que o Caio confirmar que já está como admin.
+  if (!user.isAdmin && user.usuario === 'caiohenrique') {
+    user.isAdmin = true;
+    await storageSet('app_users', users);
+  }
+}
+
+function rememberUser(usuario, senha) {
+  try {
+    localStorage.setItem('pumaGasesRememberedUser', JSON.stringify({ usuario, senha }));
+  } catch (e) { console.warn('Não foi possível salvar o login neste navegador.', e); }
+}
+
+function forgetRememberedUser() {
+  try { localStorage.removeItem('pumaGasesRememberedUser'); } catch (e) {}
+}
+
+function getRememberedUser() {
+  try {
+    const raw = localStorage.getItem('pumaGasesRememberedUser');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+async function tryAutoLogin() {
+  const remembered = getRememberedUser();
+  if (!remembered) return false;
+  const found = users.find(u => u.usuario === remembered.usuario && u.senha === remembered.senha);
+  if (!found) { forgetRememberedUser(); return false; }
+  await ensureAdminFallback(found);
+  currentUser = found;
+  hideLoginScreen();
+  await startApp();
+  return true;
+}
+
+function doLogout() {
+  currentUser = null;
+  forgetRememberedUser();
+  showLoginScreen();
+}
+
+// ---- Gerenciar usuários (modal) ----
+function renderUsersTable() {
+  const tbody = document.getElementById('usersTableBody');
+  tbody.innerHTML = '';
+  if (users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3"><div class="empty-state">Nenhum usuário cadastrado.</div></td></tr>`;
+    return;
+  }
+  users.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${u.nome} ${u.isAdmin ? '<span class="badge badge-ok">Admin</span>' : ''}</td>
+      <td>${u.usuario}</td>
+      <td><button class="btn danger small" data-del-user="${u.id}">Excluir</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('[data-del-user]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (users.length === 1) { showToast('É preciso manter pelo menos um usuário.'); return; }
+      if (!confirm('Excluir este usuário? Ele não vai mais conseguir acessar o sistema.')) return;
+      users = users.filter(u => u.id !== btn.dataset.delUser);
+      await storageSet('app_users', users);
+      renderUsersTable();
+      showToast('Usuário excluído');
+    });
+  });
+}
+
+async function saveNewUser() {
+  const nome = document.getElementById('newUserNome').value.trim();
+  const usuario = document.getElementById('newUserUsuario').value.trim();
+  const senha = document.getElementById('newUserSenha').value;
+  if (!nome || !usuario || !senha) { showToast('Preencha nome, usuário e senha.'); return; }
+  if (users.some(u => u.usuario === usuario)) { showToast('Já existe um usuário com esse login.'); return; }
+
+  users.push({ id: nextUserId(), nome, usuario, senha, isAdmin: false });
+  await storageSet('app_users', users);
+  renderUsersTable();
+  document.getElementById('newUserNome').value = '';
+  document.getElementById('newUserUsuario').value = '';
+  document.getElementById('newUserSenha').value = '';
+  showToast('Usuário adicionado');
+}
+
+document.getElementById('btnDoLogin').addEventListener('click', doLogin);
+['loginUsuario','loginSenha','loginNome'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+});
+document.getElementById('btnLogout').addEventListener('click', doLogout);
+document.getElementById('btnManageUsers').addEventListener('click', () => {
+  renderUsersTable();
+  document.getElementById('usersModal').classList.add('active');
+});
+document.getElementById('closeUsersModal').addEventListener('click', () => document.getElementById('usersModal').classList.remove('active'));
+document.getElementById('cancelUsersModal').addEventListener('click', () => document.getElementById('usersModal').classList.remove('active'));
+document.getElementById('saveNewUser').addEventListener('click', saveNewUser);
+
+// ============ TABS ============
+document.getElementById('tabNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-tab]');
+  if (!btn) return;
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+
+  if (btn.dataset.tab === 'dashboard') {
+    initDashboardDefaults();
+    renderDashboard();
+  }
+});
+
+// ============ BUDGET TAB ============
+function calcSituacao(previsto, realizado) {
+  if (!previsto || previsto === 0) return { label: 'Sem orçamento', cls: 'badge-sem' };
+  const pct = realizado / previsto;
+  if (pct > 1) return { label: 'Estourado', cls: 'badge-estourado' };
+  if (pct >= 0.9) return { label: 'Atenção', cls: 'badge-atencao' };
+  return { label: 'OK', cls: 'badge-ok' };
+}
+
+function getRealizadoPorCategoria(categoria) {
+  // Soma o valor total dos pedidos comprados/entregues dessa categoria (preenchido quando a aba Pedidos existir)
+  return orders
+    .filter(o => o.categoria === categoria && ['Comprado', 'Entregue'].includes(o.status))
+    .reduce((sum, o) => sum + (Number(o.valorTotal) || 0), 0);
+}
+
+function renderBudgetTable() {
+  const tbody = document.getElementById('budgetTableBody');
+  tbody.innerHTML = '';
+
+  let totalPrevisto = 0, totalRealizado = 0, totalSaldo = 0;
+
+  categories.forEach(cat => {
+    const previsto = Number(budgets[cat]) || 0;
+    const realizado = getRealizadoPorCategoria(cat);
+    const saldo = previsto - realizado;
+    const pct = previsto > 0 ? (realizado / previsto) * 100 : 0;
+    const situacao = calcSituacao(previsto, realizado);
+
+    totalPrevisto += previsto;
+    totalRealizado += realizado;
+    totalSaldo += saldo;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="category-input" type="text" value="${cat}" data-original-cat="${cat}"></td>
+      <td><input class="cell-input" type="number" min="0" step="0.01" value="${previsto || ''}" placeholder="0,00" data-cat="${cat}"></td>
+      <td>${formatBRL(realizado)}</td>
+      <td style="color:${saldo < 0 ? '#b91c1c' : '#111'}">${formatBRL(saldo)}</td>
+      <td>${pct.toFixed(1)}%</td>
+      <td><span class="badge ${situacao.cls}">${situacao.label}</span></td>
+      <td><button class="icon-btn" data-remove-cat="${cat}" title="Excluir categoria">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const totalPct = totalPrevisto > 0 ? (totalRealizado / totalPrevisto) * 100 : 0;
+  const totalRow = document.createElement('tr');
+  totalRow.className = 'total-row';
+  totalRow.innerHTML = `
+    <td>TOTAL</td>
+    <td>${formatBRL(totalPrevisto)}</td>
+    <td>${formatBRL(totalRealizado)}</td>
+    <td style="color:${totalSaldo < 0 ? '#b91c1c' : '#111'}">${formatBRL(totalSaldo)}</td>
+    <td>${totalPct.toFixed(1)}%</td>
+    <td>—</td>
+    <td></td>
+  `;
+  tbody.appendChild(totalRow);
+
+  // bind valor previsto changes
+  tbody.querySelectorAll('input.cell-input').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      const cat = e.target.dataset.cat;
+      const val = parseFloat(e.target.value) || 0;
+      budgets[cat] = val;
+      await storageSet('budgets', budgets);
+      renderBudgetTable();
+    });
+  });
+
+  // bind rename categoria
+  tbody.querySelectorAll('input.category-input').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      const oldName = e.target.dataset.originalCat;
+      const newName = e.target.value.trim();
+      if (!newName || newName === oldName) { renderBudgetTable(); return; }
+      if (categories.includes(newName)) {
+        showToast('Já existe uma categoria com esse nome');
+        renderBudgetTable();
+        return;
+      }
+      await renameCategory(oldName, newName);
+    });
+  });
+
+  // bind remove categoria
+  tbody.querySelectorAll('[data-remove-cat]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const cat = btn.dataset.removeCat;
+      if (!confirm(`Excluir a categoria "${cat}"? Isso não apaga fornecedores/pedidos já cadastrados com ela, mas ela some das listas.`)) return;
+      await removeCategory(cat);
+    });
+  });
+}
+
+async function renameCategory(oldName, newName) {
+  categories = categories.map(c => c === oldName ? newName : c);
+  budgets[newName] = budgets[oldName] || 0;
+  delete budgets[oldName];
+  suppliers.forEach(s => { if (s.categoria === oldName) s.categoria = newName; });
+  orders.forEach(o => { if (o.categoria === oldName) o.categoria = newName; });
+
+  await storageSet('categories', categories);
+  await storageSet('budgets', budgets);
+  await storageSet('suppliers', suppliers);
+  populateCategorySelect();
+  renderBudgetTable();
+  renderSuppliersTable();
+  showToast('Categoria renomeada');
+}
+
+async function removeCategory(cat) {
+  categories = categories.filter(c => c !== cat);
+  delete budgets[cat];
+  await storageSet('categories', categories);
+  await storageSet('budgets', budgets);
+  populateCategorySelect();
+  renderBudgetTable();
+  showToast('Categoria excluída');
+}
+
+async function addCategory() {
+  const input = document.getElementById('newCategoryInput');
+  const name = input.value.trim();
+  if (!name) { showToast('Digite o nome da categoria'); return; }
+  if (categories.includes(name)) { showToast('Essa categoria já existe'); return; }
+  categories.push(name);
+  budgets[name] = 0;
+  await storageSet('categories', categories);
+  await storageSet('budgets', budgets);
+  populateCategorySelect();
+  renderBudgetTable();
+  input.value = '';
+  showToast('Categoria adicionada');
+}
+
+function formatBRL(v) {
+  return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+// ============ SUPPLIERS TAB ============
+function nextSupplierCode() {
+  const nums = suppliers
+    .map(s => parseInt((s.codigo || '').replace('FOR-', ''), 10))
+    .filter(n => !isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return 'FOR-' + String(next).padStart(4, '0');
+}
+
+function statusBadgeClass(status) {
+  if (status === 'Ativo') return 'badge-ativo';
+  if (status === 'Inativo') return 'badge-inativo';
+  return 'badge-homolog';
+}
+
+let supplierSearchTerm = '';
+
+function renderSuppliersTable() {
+  const tbody = document.getElementById('suppliersTableBody');
+  tbody.innerHTML = '';
+
+  const term = supplierSearchTerm.trim().toLowerCase();
+  const filtered = term
+    ? suppliers.filter(s =>
+        (s.nome || '').toLowerCase().includes(term) ||
+        (s.cnpj || '').toLowerCase().includes(term) ||
+        (s.categoria || '').toLowerCase().includes(term) ||
+        (s.codigo || '').toLowerCase().includes(term)
+      )
+    : suppliers;
+
+  if (suppliers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">Nenhum fornecedor cadastrado ainda.</div></td></tr>`;
+    return;
+  }
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">Nenhum fornecedor encontrado para "${supplierSearchTerm}".</div></td></tr>`;
+    return;
+  }
+
+  filtered.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${s.codigo}</td>
+      <td>${s.nome}</td>
+      <td>${s.cnpj || '-'}</td>
+      <td>${s.contato || '-'}</td>
+      <td>${s.email || '-'}</td>
+      <td>${s.categoria}</td>
+      <td><span class="badge ${statusBadgeClass(s.status)}">${s.status}</span></td>
+      <td>
+        <button class="btn secondary small" data-edit="${s.id}">Editar</button>
+        <button class="btn danger small" data-del="${s.id}">Excluir</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => openSupplierModal(btn.dataset.edit));
+  });
+  tbody.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => deleteSupplier(btn.dataset.del));
+  });
+}
+
+function populateCategorySelect() {
+  const sel = document.getElementById('supplierCategoria');
+  const currentVal = sel.value;
+  sel.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (categories.includes(currentVal)) sel.value = currentVal;
+}
+
+function openSupplierModal(id) {
+  currentlyEditingSupplierId = id || null;
+  const modal = document.getElementById('supplierModal');
+  const title = document.getElementById('supplierModalTitle');
+
+  if (id) {
+    const s = suppliers.find(x => x.id === id);
+    title.textContent = 'Editar Fornecedor';
+    document.getElementById('supplierId').value = s.id;
+    document.getElementById('supplierCodigo').value = s.codigo;
+    document.getElementById('supplierNome').value = s.nome;
+    document.getElementById('supplierCnpj').value = s.cnpj;
+    document.getElementById('supplierContato').value = s.contato;
+    document.getElementById('supplierEmail').value = s.email;
+    document.getElementById('supplierCategoria').value = s.categoria;
+    document.getElementById('supplierStatus').value = s.status;
+  } else {
+    title.textContent = 'Novo Fornecedor';
+    document.getElementById('supplierId').value = '';
+    document.getElementById('supplierCodigo').value = nextSupplierCode();
+    document.getElementById('supplierNome').value = '';
+    document.getElementById('supplierCnpj').value = '';
+    document.getElementById('supplierContato').value = '';
+    document.getElementById('supplierEmail').value = '';
+    document.getElementById('supplierCategoria').value = categories[0];
+    document.getElementById('supplierStatus').value = 'Ativo';
+  }
+  modal.classList.add('active');
+}
+
+function closeSupplierModal() {
+  document.getElementById('supplierModal').classList.remove('active');
+  currentlyEditingSupplierId = null;
+}
+
+async function saveSupplier() {
+  const nome = document.getElementById('supplierNome').value.trim();
+  if (!nome) { showToast('Informe o nome do fornecedor'); return; }
+
+  const id = document.getElementById('supplierId').value;
+  const data = {
+    id: id || 'sup_' + Date.now(),
+    codigo: document.getElementById('supplierCodigo').value,
+    nome,
+    cnpj: document.getElementById('supplierCnpj').value.trim(),
+    contato: document.getElementById('supplierContato').value.trim(),
+    email: document.getElementById('supplierEmail').value.trim(),
+    categoria: document.getElementById('supplierCategoria').value,
+    status: document.getElementById('supplierStatus').value
+  };
+
+  if (id) {
+    const idx = suppliers.findIndex(s => s.id === id);
+    suppliers[idx] = data;
+  } else {
+    suppliers.push(data);
+  }
+
+  await storageSet('suppliers', suppliers);
+  renderSuppliersTable();
+  closeSupplierModal();
+  showToast('Fornecedor salvo com sucesso');
+}
+
+async function deleteSupplier(id) {
+  if (!confirm('Tem certeza que deseja excluir este fornecedor?')) return;
+  suppliers = suppliers.filter(s => s.id !== id);
+  await storageSet('suppliers', suppliers);
+  renderSuppliersTable();
+  showToast('Fornecedor excluído');
+}
+
+document.getElementById('btnAddCategory').addEventListener('click', addCategory);
+document.getElementById('newCategoryInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') addCategory();
+});
+
+document.getElementById('btnNewSupplier').addEventListener('click', () => openSupplierModal(null));
+document.getElementById('supplierSearchInput').addEventListener('input', (e) => {
+  supplierSearchTerm = e.target.value;
+  renderSuppliersTable();
+});
+document.getElementById('closeSupplierModal').addEventListener('click', closeSupplierModal);
+document.getElementById('cancelSupplierModal').addEventListener('click', closeSupplierModal);
+document.getElementById('saveSupplierModal').addEventListener('click', saveSupplier);
+document.getElementById('supplierModal').addEventListener('click', (e) => {
+  if (e.target.id === 'supplierModal') closeSupplierModal();
+});
+
+// ============ PEDIDOS DE COMPRA ============
+function nextOrderNumber() {
+  const nums = orders
+    .map(o => parseInt((o.numero || '').replace('PC-', ''), 10))
+    .filter(n => !isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return 'PC-' + String(next).padStart(4, '0');
+}
+
+function orderStatusBadgeClass(status) {
+  const map = {
+    'Pendente': 'badge-pendente',
+    'Em cotação': 'badge-atencao',
+    'Aguardando Aprovação': 'badge-laranja',
+    'Aprovado': 'badge-info',
+    'Comprado': 'badge-purple',
+    'Entregue': 'badge-ok',
+    'Cancelado': 'badge-cancelado'
+  };
+  return map[status] || 'badge-pendente';
+}
+
+function formatDateBR(iso) {
+  if (!iso) return '-';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function populateOrderSelects() {
+  const catSel = document.getElementById('orderCategoria');
+  catSel.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  const fornSel = document.getElementById('orderFornecedor');
+  if (suppliers.length === 0) {
+    fornSel.innerHTML = `<option value="">Nenhum fornecedor cadastrado</option>`;
+  } else {
+    fornSel.innerHTML = suppliers.map(s => `<option value="${s.nome}">${s.nome} (${s.status})</option>`).join('');
+  }
+}
+
+let orderSearchTerm = '';
+
+function renderOrdersTable() {
+  const tbody = document.getElementById('ordersTableBody');
+  tbody.innerHTML = '';
+
+  const term = orderSearchTerm.trim().toLowerCase();
+  const filteredBase = term
+    ? orders.filter(o =>
+        (o.numero || '').toLowerCase().includes(term) ||
+        (o.item || '').toLowerCase().includes(term) ||
+        (o.fornecedor || '').toLowerCase().includes(term) ||
+        (o.solicitante || '').toLowerCase().includes(term) ||
+        (o.categoria || '').toLowerCase().includes(term)
+      )
+    : orders;
+
+  if (orders.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state">Nenhum pedido de compra cadastrado ainda.</div></td></tr>`;
+    return;
+  }
+  if (filteredBase.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state">Nenhum pedido encontrado para "${orderSearchTerm}".</div></td></tr>`;
+    return;
+  }
+
+  const sorted = [...filteredBase].sort((a, b) => (b.numero || '').localeCompare(a.numero || ''));
+
+  sorted.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${o.numero}</td>
+      <td>${formatDateBR(o.dataSolicitacao)}</td>
+      <td>${o.solicitante || '-'}</td>
+      <td>${o.item || '-'}</td>
+      <td>${o.categoria || '-'}</td>
+      <td>${o.fornecedor || '-'}</td>
+      <td>${o.quantidade || 0}</td>
+      <td>${formatBRL(o.valorUnitario)}</td>
+      <td>${formatBRL(o.valorTotal)}</td>
+      <td><span class="badge ${orderStatusBadgeClass(o.status)}">${o.status}</span></td>
+      <td>${formatDateBR(o.dataCompra)}</td>
+      <td>${formatDateBR(o.prazoEntrega)}</td>
+      <td>${formatDateBR(o.dataEntrega)}</td>
+      <td>
+        <button class="btn secondary small" data-edit-order="${o.id}">Editar</button>
+        <button class="btn danger small" data-del-order="${o.id}">Excluir</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('[data-edit-order]').forEach(btn => {
+    btn.addEventListener('click', () => openOrderModal(btn.dataset.editOrder));
+  });
+  tbody.querySelectorAll('[data-del-order]').forEach(btn => {
+    btn.addEventListener('click', () => deleteOrder(btn.dataset.delOrder));
+  });
+}
+
+const ALL_ORDER_STATUSES = ['Pendente', 'Em cotação', 'Aguardando Aprovação', 'Aprovado', 'Comprado', 'Entregue', 'Cancelado'];
+const PRE_APROVACAO_STATUSES = ['Pendente', 'Em cotação', 'Aguardando Aprovação'];
+const POS_COMPRA_STATUSES = ['Comprado', 'Entregue'];
+
+function getAllowedStatuses(currentStatus) {
+  const isAdmin = !!(currentUser && currentUser.isAdmin);
+  if (isAdmin) return ALL_ORDER_STATUSES;
+  if (!currentStatus || PRE_APROVACAO_STATUSES.includes(currentStatus)) return PRE_APROVACAO_STATUSES;
+  if (currentStatus === 'Aprovado') return ['Aprovado', 'Comprado', 'Entregue'];
+  if (POS_COMPRA_STATUSES.includes(currentStatus)) return POS_COMPRA_STATUSES;
+  return [currentStatus]; // Ex: Cancelado — só admin muda
+}
+
+function populateOrderStatusSelect(currentStatus) {
+  const sel = document.getElementById('orderStatus');
+  const allowed = getAllowedStatuses(currentStatus);
+  sel.innerHTML = allowed.map(s => `<option value="${s}">${s}</option>`).join('');
+  if (currentStatus && allowed.includes(currentStatus)) sel.value = currentStatus;
+}
+
+function updateOrderDataCompraField() {
+  const status = document.getElementById('orderStatus').value;
+  const isAdmin = !!(currentUser && currentUser.isAdmin);
+  const input = document.getElementById('orderDataCompra');
+  const hint = document.getElementById('orderDataCompraHint');
+
+  if (status === 'Comprado' || status === 'Entregue') {
+    if (!input.value) input.value = new Date().toISOString().slice(0, 10);
+    input.disabled = !isAdmin;
+    hint.textContent = isAdmin ? '' : '(preenchida automaticamente — só o administrador pode alterar)';
+  } else {
+    input.disabled = !isAdmin;
+    hint.textContent = isAdmin ? '' : '(preenchida automaticamente quando o pedido for marcado como Comprado)';
+  }
+}
+
+function updateOrderValorTotal() {
+  const qtd = parseFloat(document.getElementById('orderQuantidade').value) || 0;
+  const unit = parseFloat(document.getElementById('orderValorUnitario').value) || 0;
+  document.getElementById('orderValorTotal').value = formatBRL(qtd * unit);
+}
+
+function openOrderModal(id) {
+  populateOrderSelects();
+  const modal = document.getElementById('orderModal');
+  const title = document.getElementById('orderModalTitle');
+
+  if (id) {
+    const o = orders.find(x => x.id === id);
+    title.textContent = 'Editar Pedido de Compra';
+    document.getElementById('orderId').value = o.id;
+    document.getElementById('orderNumero').value = o.numero;
+    document.getElementById('orderData').value = o.dataSolicitacao || '';
+    document.getElementById('orderSolicitante').value = o.solicitante || '';
+    document.getElementById('orderItem').value = o.item || '';
+    document.getElementById('orderCategoria').value = o.categoria || categories[0];
+    document.getElementById('orderFornecedor').value = o.fornecedor || '';
+    document.getElementById('orderQuantidade').value = o.quantidade || '';
+    document.getElementById('orderValorUnitario').value = o.valorUnitario || '';
+    populateOrderStatusSelect(o.status || 'Pendente');
+    document.getElementById('orderDataCompra').value = o.dataCompra || '';
+    document.getElementById('orderPrazoEntrega').value = o.prazoEntrega || '';
+    document.getElementById('orderDataEntrega').value = o.dataEntrega || '';
+    document.getElementById('orderObservacoes').value = o.observacoes || '';
+  } else {
+    title.textContent = 'Novo Pedido de Compra';
+    document.getElementById('orderId').value = '';
+    document.getElementById('orderNumero').value = nextOrderNumber();
+    document.getElementById('orderData').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('orderSolicitante').value = '';
+    document.getElementById('orderItem').value = '';
+    document.getElementById('orderCategoria').value = categories[0];
+    document.getElementById('orderFornecedor').value = suppliers[0] ? suppliers[0].nome : '';
+    document.getElementById('orderQuantidade').value = '';
+    document.getElementById('orderValorUnitario').value = '';
+    populateOrderStatusSelect('Pendente');
+    document.getElementById('orderDataCompra').value = '';
+    document.getElementById('orderPrazoEntrega').value = '';
+    document.getElementById('orderDataEntrega').value = '';
+    document.getElementById('orderObservacoes').value = '';
+  }
+  updateOrderValorTotal();
+  updateOrderDataCompraField();
+  modal.classList.add('active');
+}
+
+function closeOrderModal() {
+  document.getElementById('orderModal').classList.remove('active');
+}
+
+async function saveOrder() {
+  const item = document.getElementById('orderItem').value.trim();
+  if (!item) { showToast('Informe o item / material solicitado'); return; }
+
+  const qtd = parseFloat(document.getElementById('orderQuantidade').value) || 0;
+  const unit = parseFloat(document.getElementById('orderValorUnitario').value) || 0;
+  const novoStatus = document.getElementById('orderStatus').value;
+
+  const id = document.getElementById('orderId').value;
+  const existente = id ? orders.find(o => o.id === id) : null;
+
+  // A Data de Compra é preenchida sozinha assim que o status vira "Comprado" ou "Entregue",
+  // a menos que o administrador já tenha colocado uma data manualmente.
+  let dataCompra = document.getElementById('orderDataCompra').value;
+  const statusAnterior = existente ? existente.status : null;
+  const viroCompradoAgora = (novoStatus === 'Comprado' || novoStatus === 'Entregue') && statusAnterior !== 'Comprado' && statusAnterior !== 'Entregue';
+  if (viroCompradoAgora && !dataCompra) {
+    dataCompra = new Date().toISOString().slice(0, 10);
+  }
+
+  const data = {
+    id: id || 'ord_' + Date.now(),
+    numero: document.getElementById('orderNumero').value,
+    dataSolicitacao: document.getElementById('orderData').value,
+    solicitante: document.getElementById('orderSolicitante').value.trim(),
+    item,
+    categoria: document.getElementById('orderCategoria').value,
+    fornecedor: document.getElementById('orderFornecedor').value,
+    quantidade: qtd,
+    valorUnitario: unit,
+    valorTotal: qtd * unit,
+    status: novoStatus,
+    dataCompra,
+    prazoEntrega: document.getElementById('orderPrazoEntrega').value,
+    dataEntrega: document.getElementById('orderDataEntrega').value,
+    observacoes: document.getElementById('orderObservacoes').value.trim()
+  };
+
+  if (id) {
+    const idx = orders.findIndex(o => o.id === id);
+    orders[idx] = data;
+  } else {
+    orders.push(data);
+  }
+
+  await storageSet('orders', orders);
+  renderOrdersTable();
+  renderBudgetTable(); // reflete o novo gasto realizado, se aplicável
+  closeOrderModal();
+  showToast('Pedido salvo com sucesso');
+}
+
+async function deleteOrder(id) {
+  if (!confirm('Tem certeza que deseja excluir este pedido?')) return;
+  orders = orders.filter(o => o.id !== id);
+  await storageSet('orders', orders);
+  renderOrdersTable();
+  renderBudgetTable();
+  showToast('Pedido excluído');
+}
+
+document.getElementById('btnNewOrder').addEventListener('click', () => openOrderModal(null));
+document.getElementById('orderSearchInput').addEventListener('input', (e) => {
+  orderSearchTerm = e.target.value;
+  renderOrdersTable();
+});
+document.getElementById('closeOrderModal').addEventListener('click', closeOrderModal);
+document.getElementById('cancelOrderModal').addEventListener('click', closeOrderModal);
+document.getElementById('saveOrderModal').addEventListener('click', saveOrder);
+document.getElementById('orderQuantidade').addEventListener('input', updateOrderValorTotal);
+document.getElementById('orderValorUnitario').addEventListener('input', updateOrderValorTotal);
+document.getElementById('orderStatus').addEventListener('change', updateOrderDataCompraField);
+document.getElementById('orderModal').addEventListener('click', (e) => {
+  if (e.target.id === 'orderModal') closeOrderModal();
+});
+
+// ============ COMPARATIVO DE COTAÇÕES ============
+let quotes = []; // [{id, numero, item, categoria, data, forn1, preco1, forn2, preco2, forn3, preco3, escolhidoSlot, escolhidoNome, precoEscolhido, maiorPreco, economia, economiaPct, pedidoId}]
+let quoteSearchTerm = '';
+
+function nextQuoteNumber() {
+  const nums = quotes
+    .map(q => parseInt((q.numero || '').replace('COT-', ''), 10))
+    .filter(n => !isNaN(n));
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  return 'COT-' + String(next).padStart(4, '0');
+}
+
+function supplierOptionsHtml(selectedName) {
+  let names = suppliers.map(s => s.nome);
+  if (selectedName && !names.includes(selectedName)) names = [selectedName, ...names];
+  const opts = ['<option value="">-</option>', ...names.map(n => `<option value="${n}">${n}</option>`)];
+  return opts.join('');
+}
+
+function populateQuoteSelects(pedidoIdsSelecionados) {
+  document.getElementById('quoteCategoria').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  document.getElementById('quoteForn1').innerHTML = supplierOptionsHtml();
+  document.getElementById('quoteForn2').innerHTML = supplierOptionsHtml();
+  document.getElementById('quoteForn3').innerHTML = supplierOptionsHtml();
+
+  const selecionados = pedidoIdsSelecionados || [];
+  const currentQuoteId = document.getElementById('quoteId').value;
+
+  // Pedidos já usados em OUTRAS cotações (não conta a própria cotação que está sendo editada)
+  const pedidosJaVinculadosEmOutras = new Set();
+  quotes.forEach(q => {
+    if (q.id === currentQuoteId) return;
+    const ids = q.pedidoIds || (q.pedidoId ? [q.pedidoId] : []);
+    ids.forEach(pid => pedidosJaVinculadosEmOutras.add(pid));
+  });
+
+  const container = document.getElementById('quotePedidosCheckboxList');
+  if (orders.length === 0) {
+    container.innerHTML = '<div style="color:#888; font-size:12.5px;">Nenhum pedido de compra cadastrado ainda.</div>';
+    return;
+  }
+
+  // Só mostra pedidos ainda "em aberto" (não vale a pena vincular cotação nova a um pedido que
+  // já foi comprado, entregue ou cancelado — cotação serve pra comparar preço ANTES da compra),
+  // e que ainda não estejam vinculados a outra cotação — mas mantém visíveis os que já estão
+  // marcados nesta própria cotação, mesmo que não se encaixem mais nessas regras.
+  const statusFechados = ['Comprado', 'Entregue', 'Cancelado'];
+  const disponiveis = orders.filter(o =>
+    (!statusFechados.includes(o.status) && !pedidosJaVinculadosEmOutras.has(o.id)) || selecionados.includes(o.id)
+  );
+
+  if (disponiveis.length === 0) {
+    container.innerHTML = '<div style="color:#888; font-size:12.5px;">Nenhum pedido disponível — todos já foram comprados/vinculados a outra cotação.</div>';
+    return;
+  }
+
+  const sortedOrders = [...disponiveis].sort((a, b) => (b.numero || '').localeCompare(a.numero || ''));
+  container.innerHTML = sortedOrders.map(o => `
+    <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:400;">
+      <input type="checkbox" value="${o.id}" data-quote-pedido-cb ${selecionados.includes(o.id) ? 'checked' : ''} style="width:auto;">
+      <span>${o.numero} — ${o.item} <span style="color:#888;">(${o.status})</span></span>
+    </label>
+  `).join('');
+}
+
+function getSelectedQuotePedidoIds() {
+  return Array.from(document.querySelectorAll('[data-quote-pedido-cb]:checked')).map(cb => cb.value);
+}
+
+function refreshEscolhidoOptions(keepSlot) {
+  const f1 = document.getElementById('quoteForn1').value;
+  const f2 = document.getElementById('quoteForn2').value;
+  const f3 = document.getElementById('quoteForn3').value;
+  const sel = document.getElementById('quoteEscolhido');
+  const prevVal = keepSlot !== undefined ? keepSlot : sel.value;
+
+  const opts = [];
+  if (f1) opts.push({ slot: '1', label: f1 });
+  if (f2) opts.push({ slot: '2', label: f2 });
+  if (f3) opts.push({ slot: '3', label: f3 });
+
+  sel.innerHTML = opts.length
+    ? opts.map(o => `<option value="${o.slot}">${o.label}</option>`).join('')
+    : '<option value="">Selecione os fornecedores acima</option>';
+
+  if (opts.some(o => o.slot === prevVal)) sel.value = prevVal;
+  updateQuotePreview();
+}
+
+function updateQuotePreview() {
+  const p1 = parseFloat(document.getElementById('quotePreco1').value) || 0;
+  const p2 = parseFloat(document.getElementById('quotePreco2').value) || 0;
+  const p3 = parseFloat(document.getElementById('quotePreco3').value) || 0;
+  const precosValidos = [p1, p2, p3].filter(p => p > 0);
+  const maior = precosValidos.length ? Math.max(...precosValidos) : 0;
+
+  const slot = document.getElementById('quoteEscolhido').value;
+  const precoEscolhido = slot === '1' ? p1 : slot === '2' ? p2 : slot === '3' ? p3 : 0;
+  const economia = maior - precoEscolhido;
+  const economiaPct = maior > 0 && precoEscolhido > 0 ? (economia / maior) * 100 : 0;
+
+  document.getElementById('quotePrecoEscolhidoPreview').textContent = formatBRL(precoEscolhido);
+  document.getElementById('quoteMaiorPrecoPreview').textContent = formatBRL(maior);
+  document.getElementById('quoteEconomiaPreview').textContent = formatBRL(economia);
+  document.getElementById('quoteEconomiaPctPreview').textContent = economiaPct.toFixed(1) + '%';
+}
+
+function renderQuotesTable() {
+  const tbody = document.getElementById('quotesTableBody');
+  tbody.innerHTML = '';
+
+  const term = quoteSearchTerm.trim().toLowerCase();
+  const filteredBase = term
+    ? quotes.filter(q =>
+        (q.numero || '').toLowerCase().includes(term) ||
+        (q.item || '').toLowerCase().includes(term) ||
+        (q.forn1 || '').toLowerCase().includes(term) ||
+        (q.forn2 || '').toLowerCase().includes(term) ||
+        (q.forn3 || '').toLowerCase().includes(term) ||
+        (q.escolhidoNome || '').toLowerCase().includes(term) ||
+        (q.categoria || '').toLowerCase().includes(term)
+      )
+    : quotes;
+
+  if (quotes.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="17"><div class="empty-state">Nenhuma cotação registrada ainda.</div></td></tr>`;
+    return;
+  }
+  if (filteredBase.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="17"><div class="empty-state">Nenhuma cotação encontrada para "${quoteSearchTerm}".</div></td></tr>`;
+    return;
+  }
+
+  const sorted = [...filteredBase].sort((a, b) => (b.numero || '').localeCompare(a.numero || ''));
+
+  sorted.forEach(q => {
+    const pedidoIds = q.pedidoIds || (q.pedidoId ? [q.pedidoId] : []);
+    const pedidosVinculados = pedidoIds.map(pid => orders.find(o => o.id === pid)).filter(Boolean);
+    const pedidosTxt = pedidosVinculados.length
+      ? pedidosVinculados.map(p => `${p.numero} <span class="badge ${orderStatusBadgeClass(p.status)}" style="font-size:10px; padding:2px 6px;">${p.status}</span>`).join('<br>')
+      : '-';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${q.numero}</td>
+      <td>${q.item || '-'}</td>
+      <td>${q.categoria || '-'}</td>
+      <td>${formatDateBR(q.data)}</td>
+      <td>${q.forn1 || '-'}</td>
+      <td>${formatBRL(q.preco1)}</td>
+      <td>${q.forn2 || '-'}</td>
+      <td>${formatBRL(q.preco2)}</td>
+      <td>${q.forn3 || '-'}</td>
+      <td>${formatBRL(q.preco3)}</td>
+      <td><strong>${q.escolhidoNome || '-'}</strong></td>
+      <td>${formatBRL(q.precoEscolhido)}</td>
+      <td>${formatBRL(q.maiorPreco)}</td>
+      <td style="color:#15803d;">${formatBRL(q.economia)}</td>
+      <td style="color:#15803d;">${(q.economiaPct || 0).toFixed(1)}%</td>
+      <td>${pedidosTxt}</td>
+      <td>
+        <button class="btn secondary small" data-edit-quote="${q.id}">Editar</button>
+        <button class="btn danger small" data-del-quote="${q.id}">Excluir</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('[data-edit-quote]').forEach(btn => {
+    btn.addEventListener('click', () => openQuoteModal(btn.dataset.editQuote));
+  });
+  tbody.querySelectorAll('[data-del-quote]').forEach(btn => {
+    btn.addEventListener('click', () => deleteQuote(btn.dataset.delQuote));
+  });
+}
+
+function openQuoteModal(id) {
+  const modal = document.getElementById('quoteModal');
+  const title = document.getElementById('quoteModalTitle');
+
+  if (id) {
+    const q = quotes.find(x => x.id === id);
+    title.textContent = 'Editar Cotação';
+    document.getElementById('quoteId').value = q.id;
+    populateQuoteSelects(q.pedidoIds || (q.pedidoId ? [q.pedidoId] : []));
+    document.getElementById('quoteNumero').value = q.numero;
+    document.getElementById('quoteItem').value = q.item || '';
+    document.getElementById('quoteCategoria').value = q.categoria || categories[0];
+    document.getElementById('quoteData').value = q.data || '';
+
+    document.getElementById('quoteForn1').innerHTML = supplierOptionsHtml(q.forn1);
+    document.getElementById('quoteForn2').innerHTML = supplierOptionsHtml(q.forn2);
+    document.getElementById('quoteForn3').innerHTML = supplierOptionsHtml(q.forn3);
+    document.getElementById('quoteForn1').value = q.forn1 || '';
+    document.getElementById('quoteForn2').value = q.forn2 || '';
+    document.getElementById('quoteForn3').value = q.forn3 || '';
+    document.getElementById('quotePreco1').value = q.preco1 || '';
+    document.getElementById('quotePreco2').value = q.preco2 || '';
+    document.getElementById('quotePreco3').value = q.preco3 || '';
+
+    refreshEscolhidoOptions(q.escolhidoSlot);
+  } else {
+    title.textContent = 'Nova Cotação';
+    document.getElementById('quoteId').value = '';
+    populateQuoteSelects([]);
+    document.getElementById('quoteNumero').value = nextQuoteNumber();
+    document.getElementById('quoteItem').value = '';
+    document.getElementById('quoteCategoria').value = categories[0];
+    document.getElementById('quoteData').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('quoteForn1').value = '';
+    document.getElementById('quoteForn2').value = '';
+    document.getElementById('quoteForn3').value = '';
+    document.getElementById('quotePreco1').value = '';
+    document.getElementById('quotePreco2').value = '';
+    document.getElementById('quotePreco3').value = '';
+    refreshEscolhidoOptions('');
+  }
+  modal.classList.add('active');
+}
+
+function closeQuoteModal() {
+  document.getElementById('quoteModal').classList.remove('active');
+}
+
+async function saveQuote() {
+  const item = document.getElementById('quoteItem').value.trim();
+  if (!item) { showToast('Informe o item / material da cotação'); return; }
+
+  const slot = document.getElementById('quoteEscolhido').value;
+  if (!slot) { showToast('Selecione o fornecedor escolhido'); return; }
+
+  const p1 = parseFloat(document.getElementById('quotePreco1').value) || 0;
+  const p2 = parseFloat(document.getElementById('quotePreco2').value) || 0;
+  const p3 = parseFloat(document.getElementById('quotePreco3').value) || 0;
+  const precosValidos = [p1, p2, p3].filter(p => p > 0);
+  const maior = precosValidos.length ? Math.max(...precosValidos) : 0;
+  const precoEscolhido = slot === '1' ? p1 : slot === '2' ? p2 : p3;
+  const escolhidoNome = slot === '1' ? document.getElementById('quoteForn1').value
+    : slot === '2' ? document.getElementById('quoteForn2').value
+    : document.getElementById('quoteForn3').value;
+  const economia = maior - precoEscolhido;
+  const economiaPct = maior > 0 && precoEscolhido > 0 ? (economia / maior) * 100 : 0;
+
+  const id = document.getElementById('quoteId').value;
+  const data = {
+    id: id || 'quo_' + Date.now(),
+    numero: document.getElementById('quoteNumero').value,
+    item,
+    categoria: document.getElementById('quoteCategoria').value,
+    data: document.getElementById('quoteData').value,
+    forn1: document.getElementById('quoteForn1').value,
+    preco1: p1,
+    forn2: document.getElementById('quoteForn2').value,
+    preco2: p2,
+    forn3: document.getElementById('quoteForn3').value,
+    preco3: p3,
+    escolhidoSlot: slot,
+    escolhidoNome,
+    precoEscolhido,
+    maiorPreco: maior,
+    economia,
+    economiaPct,
+    pedidoIds: getSelectedQuotePedidoIds()
+  };
+
+  if (id) {
+    const idx = quotes.findIndex(q => q.id === id);
+    quotes[idx] = data;
+  } else {
+    quotes.push(data);
+  }
+
+  await storageSet('quotes', quotes);
+  renderQuotesTable();
+  closeQuoteModal();
+  showToast('Cotação salva com sucesso');
+}
+
+async function deleteQuote(id) {
+  if (!confirm('Tem certeza que deseja excluir esta cotação?')) return;
+  quotes = quotes.filter(q => q.id !== id);
+  await storageSet('quotes', quotes);
+  renderQuotesTable();
+  showToast('Cotação excluída');
+}
+
+document.getElementById('btnNewQuote').addEventListener('click', () => openQuoteModal(null));
+document.getElementById('quoteSearchInput').addEventListener('input', (e) => {
+  quoteSearchTerm = e.target.value;
+  renderQuotesTable();
+});
+document.getElementById('closeQuoteModal').addEventListener('click', closeQuoteModal);
+document.getElementById('cancelQuoteModal').addEventListener('click', closeQuoteModal);
+document.getElementById('saveQuoteModal').addEventListener('click', saveQuote);
+document.getElementById('quoteModal').addEventListener('click', (e) => {
+  if (e.target.id === 'quoteModal') closeQuoteModal();
+});
+['quoteForn1', 'quoteForn2', 'quoteForn3'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => refreshEscolhidoOptions());
+});
+['quotePreco1', 'quotePreco2', 'quotePreco3'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateQuotePreview);
+});
+document.getElementById('quoteEscolhido').addEventListener('change', updateQuotePreview);
+
+// ============ DASHBOARD ============
+let dashCharts = {};
+let printMode = false;
+
+// Desenha o valor de cada fatia/ponto direto no gráfico — só quando está imprimindo
+const printValueLabelsPlugin = {
+  id: 'printValueLabels',
+  afterDatasetsDraw(chart) {
+    if (!printMode) return;
+    if (chart.config.type !== 'doughnut' && chart.config.type !== 'line') return;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#000';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    chart.data.datasets.forEach((dataset, dsIndex) => {
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (meta.hidden) return;
+      meta.data.forEach((element, index) => {
+        const value = dataset.data[index];
+        if (value === undefined || value === null || value === 0) return;
+        const pos = element.tooltipPosition ? element.tooltipPosition() : { x: element.x, y: element.y };
+        const text = Number.isInteger(value) ? value.toLocaleString('pt-BR') : value.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+        const yOffset = chart.config.type === 'line' ? -12 : 0;
+        const w = ctx.measureText(text).width;
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillRect(pos.x - w / 2 - 3, pos.y + yOffset - 8, w + 6, 16);
+        ctx.fillStyle = '#000';
+        ctx.fillText(text, pos.x, pos.y + yOffset);
+      });
+    });
+    ctx.restore();
+  }
+};
+Chart.register(printValueLabelsPlugin);
+
+function destroyChart(id) {
+  if (dashCharts[id]) { dashCharts[id].destroy(); delete dashCharts[id]; }
+}
+
+function commonChartOptions(legend) {
+  const textColor = printMode ? '#000' : '#cfd2f5';
+  const axisColor = printMode ? '#000' : '#9ea3c9';
+  const gridColor = printMode ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.06)';
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: printMode ? false : undefined,
+    plugins: {
+      legend: { display: !!legend, labels: { color: textColor } },
+      tooltip: { titleColor: '#fff', bodyColor: '#fff', backgroundColor: '#1c1a3a' }
+    },
+    scales: {
+      x: { ticks: { color: axisColor }, grid: { color: gridColor } },
+      y: { ticks: { color: axisColor }, grid: { color: gridColor }, beginAtZero: true }
+    }
+  };
+}
+
+function initDashboardDefaults() {
+  const inicio = document.getElementById('dashDataInicio');
+  const fim = document.getElementById('dashDataFim');
+  if (inicio.value && fim.value) return;
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  inicio.value = first.toISOString().slice(0, 10);
+  fim.value = now.toISOString().slice(0, 10);
+}
+
+function inRange(dateStr, from, to) {
+  if (!dateStr) return false;
+  if (from && dateStr < from) return false;
+  if (to && dateStr > to) return false;
+  return true;
+}
+
+// Cotações criadas ATÉ essa data usam o cálculo antigo (pela própria data da cotação, sem
+// precisar de pedido vinculado) — isso evita que cotações importadas manualmente, sem vínculo,
+// fiquem com economia zerada no Dashboard. Cotações CRIADAS DEPOIS dessa data usam a lógica
+// nova, baseada no pedido vinculado + data de compra.
+const LEGACY_QUOTE_CUTOFF_DATE = '2026-08-05';
+function isLegacyQuote(q) { return q.data && q.data <= LEGACY_QUOTE_CUTOFF_DATE; }
+
+// Calcula a "fatia" de economia e maior preço que pertence a um pedido específico,
+// dividindo os valores da cotação igualmente entre todos os pedidos vinculados a ela.
+// Só considera cotações "novas" (depois da data de corte) — as antigas são somadas à parte.
+function getPedidoEconomiaSlice(orderId) {
+  let economia = 0, maiorPreco = 0;
+  quotes.forEach(q => {
+    if (isLegacyQuote(q)) return;
+    const ids = q.pedidoIds || (q.pedidoId ? [q.pedidoId] : []);
+    if (ids.includes(orderId) && ids.length > 0) {
+      economia += (Number(q.economia) || 0) / ids.length;
+      maiorPreco += (Number(q.maiorPreco) || 0) / ids.length;
+    }
+  });
+  return { economia, maiorPreco };
+}
+
+function renderDashboard() {
+  const warningEl = document.getElementById('dashChartWarning');
+  if (typeof Chart === 'undefined') {
+    if (warningEl) warningEl.style.display = 'block';
+    return; // biblioteca de gráficos não carregou (provável bloqueio de rede)
+  }
+  if (warningEl) warningEl.style.display = 'none';
+  const from = document.getElementById('dashDataInicio').value;
+  const to = document.getElementById('dashDataFim').value;
+
+  // Total de Pedidos e Pedidos Pendentes: baseado em quando o pedido foi SOLICITADO.
+  const filteredOrders = orders.filter(o => inRange(o.dataSolicitacao, from, to));
+  const totalPedidos = filteredOrders.length;
+  const pedidosPendentes = filteredOrders.filter(o => o.status === 'Pendente').length;
+
+  // Gasto Realizado: baseado em quando o pedido foi efetivamente COMPRADO.
+  const filteredOrdersCompra = orders.filter(o =>
+    ['Comprado', 'Entregue'].includes(o.status) && inRange(o.dataCompra, from, to)
+  );
+  const gastoRealizado = filteredOrdersCompra.reduce((s, o) => s + (Number(o.valorTotal) || 0), 0);
+
+  // Economia: soma o método NOVO (pedido vinculado + data de compra) com o método ANTIGO
+  // (cotações de antes da data de corte, contadas pela própria data da cotação).
+  let economiaTotal = 0, maiorTotal = 0;
+  filteredOrdersCompra.forEach(o => {
+    const slice = getPedidoEconomiaSlice(o.id);
+    economiaTotal += slice.economia;
+    maiorTotal += slice.maiorPreco;
+  });
+  const legacyQuotesNoPeriodo = quotes.filter(q => isLegacyQuote(q) && inRange(q.data, from, to));
+  legacyQuotesNoPeriodo.forEach(q => {
+    economiaTotal += Number(q.economia) || 0;
+    maiorTotal += Number(q.maiorPreco) || 0;
+  });
+  // Economia (%) = Economia Total ÷ Gasto Realizado — mostra o desconto sobre o valor
+  // efetivamente gasto no período (não só sobre os itens que tiveram cotação).
+  const economiaPct = gastoRealizado > 0 ? (economiaTotal / gastoRealizado) * 100 : 0;
+
+  document.getElementById('kpiTotalPedidos').textContent = totalPedidos;
+  document.getElementById('kpiGastoRealizado').textContent = formatBRL(gastoRealizado);
+  document.getElementById('kpiEconomiaTotal').textContent = formatBRL(economiaTotal);
+  document.getElementById('kpiEconomiaPct').textContent = economiaPct.toFixed(5) + '%';
+  document.getElementById('kpiPedidosPendentes').textContent = pedidosPendentes;
+
+  renderChartEvolucao(filteredOrdersCompra);
+  renderChartStatus(filteredOrders);
+  renderChartCategoria(filteredOrdersCompra);
+  renderChartFornecedores(filteredOrdersCompra);
+  renderChartFornecedoresQtd(filteredOrders);
+  renderTopEconomia(filteredOrdersCompra, legacyQuotesNoPeriodo);
+  renderAlertasCategoria();
+  renderAtrasos();
+}
+
+function renderChartEvolucao(filteredOrdersCompra) {
+  const relevant = filteredOrdersCompra.filter(o => o.dataCompra);
+
+  const from = document.getElementById('dashDataInicio').value;
+  const to = document.getElementById('dashDataFim').value;
+  let spanDias = 999; // se não houver período definido, assume período longo (agrupa por mês)
+  if (from && to) {
+    spanDias = Math.round((new Date(to + 'T00:00:00') - new Date(from + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+  }
+  const agruparPorDia = spanDias <= 62; // períodos de até ~2 meses mostram o detalhe diário
+
+  const grupos = {};
+  relevant.forEach(o => {
+    const chave = agruparPorDia ? o.dataCompra : o.dataCompra.slice(0, 7);
+    grupos[chave] = (grupos[chave] || 0) + (Number(o.valorTotal) || 0);
+  });
+  const chaves = Object.keys(grupos).sort();
+  const nomesMes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  const labels = chaves.map(k => {
+    if (agruparPorDia) {
+      const [y, m, d] = k.split('-');
+      return `${d}/${m}`;
+    }
+    const [y, mm] = k.split('-');
+    return nomesMes[parseInt(mm, 10) - 1] + '/' + y.slice(2);
+  });
+  const values = chaves.map(k => grupos[k]);
+
+  destroyChart('chartEvolucao');
+  const canvas = document.getElementById('chartEvolucao');
+  const ctx = canvas.getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+  gradient.addColorStop(0, 'rgba(120,0,255,0.55)');
+  gradient.addColorStop(1, 'rgba(120,0,255,0)');
+
+  dashCharts['chartEvolucao'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels.length ? labels : ['Sem dados'],
+      datasets: [{
+        label: agruparPorDia ? 'Gasto por dia' : 'Gasto por mês',
+        data: values.length ? values : [0],
+        borderColor: '#7800ff',
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#7800ff',
+        pointRadius: 4
+      }]
+    },
+    options: commonChartOptions(false)
+  });
+}
+
+const STATUS_COLORS = {
+  'Pendente': '#9ca3af', 'Em cotação': '#fff500', 'Aguardando Aprovação': '#ffa500', 'Aprovado': '#0021ff',
+  'Comprado': '#7800ff', 'Entregue': '#00ff12', 'Cancelado': '#ff0000'
+};
+
+function renderChartStatus(filteredOrders) {
+  const statuses = Object.keys(STATUS_COLORS);
+  const counts = statuses.map(s => filteredOrders.filter(o => o.status === s).length);
+  destroyChart('chartStatus');
+  const ctx = document.getElementById('chartStatus').getContext('2d');
+  dashCharts['chartStatus'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: statuses, datasets: [{ data: counts, backgroundColor: statuses.map(s => STATUS_COLORS[s]), borderWidth: 0 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: printMode ? false : undefined,
+      plugins: { legend: { position: 'bottom', labels: { color: printMode ? '#000' : '#cfd2f5', boxWidth: 10, font: { size: 11 } } } }
+    }
+  });
+}
+
+function renderChartCategoria(filteredOrdersCompra) {
+  const data = categories.map(cat =>
+    filteredOrdersCompra.filter(o => o.categoria === cat)
+      .reduce((s, o) => s + (Number(o.valorTotal) || 0), 0)
+  );
+  destroyChart('chartCategoria');
+  const ctx = document.getElementById('chartCategoria').getContext('2d');
+  dashCharts['chartCategoria'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: categories, datasets: [{ label: 'Gasto', data, backgroundColor: '#7800ff', borderRadius: 6, maxBarThickness: 34 }] },
+    options: commonChartOptions(false)
+  });
+}
+
+function renderChartFornecedores(filteredOrdersCompra) {
+  const relevant = filteredOrdersCompra.filter(o => o.fornecedor);
+  const map = {};
+  relevant.forEach(o => { map[o.fornecedor] = (map[o.fornecedor] || 0) + (Number(o.valorTotal) || 0); });
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  destroyChart('chartFornecedores');
+  const ctx = document.getElementById('chartFornecedores').getContext('2d');
+  dashCharts['chartFornecedores'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: entries.map(e => e[0]), datasets: [{ label: 'Valor', data: entries.map(e => e[1]), backgroundColor: '#0021ff', borderRadius: 6, maxBarThickness: 28 }] },
+    options: { ...commonChartOptions(false), indexAxis: 'y' }
+  });
+}
+
+function renderChartFornecedoresQtd(filteredOrders) {
+  const map = {};
+  filteredOrders.forEach(o => { if (o.fornecedor) map[o.fornecedor] = (map[o.fornecedor] || 0) + 1; });
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  destroyChart('chartFornecedoresQtd');
+  const ctx = document.getElementById('chartFornecedoresQtd').getContext('2d');
+  dashCharts['chartFornecedoresQtd'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: entries.map(e => e[0]), datasets: [{ label: 'Pedidos', data: entries.map(e => e[1]), backgroundColor: '#00ff12', borderRadius: 6, maxBarThickness: 28 }] },
+    options: commonChartOptions(false)
+  });
+}
+
+function renderTopEconomia(filteredOrdersCompra, legacyQuotesNoPeriodo) {
+  const container = document.getElementById('dashTopEconomia');
+
+  const doNovoMetodo = filteredOrdersCompra.map(o => {
+    const slice = getPedidoEconomiaSlice(o.id);
+    const pct = slice.maiorPreco > 0 ? (slice.economia / slice.maiorPreco) * 100 : 0;
+    return { item: o.item, fornecedor: o.fornecedor, economia: slice.economia, pct };
+  });
+
+  const doMetodoAntigo = (legacyQuotesNoPeriodo || []).map(q => ({
+    item: q.item, fornecedor: q.escolhidoNome, economia: Number(q.economia) || 0, pct: q.economiaPct || 0
+  }));
+
+  const comEconomia = [...doNovoMetodo, ...doMetodoAntigo]
+    .filter(x => x.economia > 0)
+    .sort((a, b) => b.economia - a.economia)
+    .slice(0, 6);
+
+  if (!comEconomia.length) { container.innerHTML = '<div class="dash-empty">Nenhuma economia registrada no período.</div>'; return; }
+  container.innerHTML = comEconomia.map(x => `
+    <div class="dash-list-item">
+      <div>
+        <div class="dash-list-name">${x.item}</div>
+        <div class="dash-list-meta">${x.fornecedor || '-'}</div>
+      </div>
+      <div class="dash-list-value">${formatBRL(x.economia)}<br><span style="font-size:11px;">${x.pct.toFixed(1)}%</span></div>
+    </div>
+  `).join('');
+}
+
+function renderAlertasCategoria() {
+  const container = document.getElementById('dashAlertasCategoria');
+  const items = categories.map(cat => {
+    const previsto = Number(budgets[cat]) || 0;
+    const realizado = getRealizadoPorCategoria(cat);
+    return { cat, previsto, realizado, situ: calcSituacao(previsto, realizado) };
+  }).filter(i => i.situ.label === 'Estourado' || i.situ.label === 'Atenção');
+
+  if (!items.length) { container.innerHTML = '<div class="dash-empty">Nenhuma categoria em alerta. 🎉</div>'; return; }
+  container.innerHTML = items.map(i => `
+    <div class="dash-list-item">
+      <div>
+        <div class="dash-list-name">${i.cat}</div>
+        <div class="dash-list-meta">${formatBRL(i.realizado)} de ${formatBRL(i.previsto)}</div>
+      </div>
+      <div class="dash-list-value ${i.situ.label === 'Estourado' ? 'danger' : 'warn'}">${i.situ.label}</div>
+    </div>
+  `).join('');
+}
+
+function renderAtrasos() {
+  const container = document.getElementById('dashAtrasos');
+  const today = new Date().toISOString().slice(0, 10);
+  const atrasados = orders.filter(o => {
+    if (!o.prazoEntrega || o.status === 'Cancelado') return false;
+    if (o.dataEntrega) return o.dataEntrega > o.prazoEntrega;
+    return o.prazoEntrega < today && o.status !== 'Entregue';
+  });
+  if (!atrasados.length) { container.innerHTML = '<div class="dash-empty">Nenhum pedido atrasado. 🎉</div>'; return; }
+  container.innerHTML = atrasados.slice(0, 8).map(o => `
+    <div class="dash-list-item">
+      <div>
+        <div class="dash-list-name">${o.numero} — ${o.item}</div>
+        <div class="dash-list-meta">Prazo: ${formatDateBR(o.prazoEntrega)}${o.dataEntrega ? ' · Entregue: ' + formatDateBR(o.dataEntrega) : ''}</div>
+      </div>
+      <div class="dash-list-value danger">${o.dataEntrega ? 'Atrasado' : 'Em atraso'}</div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btnDashFiltrar').addEventListener('click', renderDashboard);
+
+document.getElementById('btnPrintDashboard').addEventListener('click', () => {
+  const logoImg = document.querySelector('.header-left img');
+  document.getElementById('printReportLogo').src = logoImg ? logoImg.src : '';
+  const de = document.getElementById('dashDataInicio').value;
+  const ate = document.getElementById('dashDataFim').value;
+  document.getElementById('printReportDate').textContent =
+    `Período: ${formatDateBR(de)} a ${formatDateBR(ate)} · Emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  printMode = true;
+  renderDashboard(); // redesenha os gráficos com texto preto e valores sobrepostos, só pra impressão
+  setTimeout(() => { window.print(); }, 350); // espera os gráficos terminarem de desenhar antes de imprimir
+});
+window.addEventListener('afterprint', () => {
+  if (printMode) {
+    printMode = false;
+    renderDashboard(); // volta os gráficos pro visual normal da tela
+  }
+});
+
+// ============ INITIAL LOAD + SINCRONIZAÇÃO EM TEMPO REAL ============
+async function loadAll() {
+  categories = await storageGet('categories', [...DEFAULT_CATEGORIES]);
+  budgets = await storageGet('budgets', {});
+  suppliers = await storageGet('suppliers', []);
+  orders = await storageGet('orders', []);
+  quotes = await storageGet('quotes', []);
+}
+
+function applyIncomingData(key, parsedData) {
+  if (parsedData === null || parsedData === undefined) return;
+
+  const activeIsBudgetInput = document.activeElement && (
+    document.activeElement.classList.contains('cell-input') ||
+    document.activeElement.classList.contains('category-input') ||
+    document.activeElement.id === 'newCategoryInput'
+  );
+  const supplierModalOpen = document.getElementById('supplierModal').classList.contains('active');
+  const usersModalOpen = document.getElementById('usersModal').classList.contains('active');
+
+  if (key === 'categories') {
+    categories = parsedData;
+    if (!activeIsBudgetInput) { populateCategorySelect(); renderBudgetTable(); }
+  } else if (key === 'budgets') {
+    budgets = parsedData;
+    if (!activeIsBudgetInput) renderBudgetTable();
+  } else if (key === 'suppliers') {
+    suppliers = parsedData;
+    if (!supplierModalOpen) renderSuppliersTable();
+  } else if (key === 'orders') {
+    orders = parsedData;
+    const orderModalOpen = document.getElementById('orderModal').classList.contains('active');
+    if (!activeIsBudgetInput) renderBudgetTable();
+    if (!orderModalOpen) renderOrdersTable();
+  } else if (key === 'quotes') {
+    quotes = parsedData;
+    const quoteModalOpen = document.getElementById('quoteModal').classList.contains('active');
+    if (!quoteModalOpen) renderQuotesTable();
+  } else if (key === 'app_users') {
+    users = parsedData;
+    if (usersModalOpen) renderUsersTable();
+  }
+
+  const dashboardActive = document.getElementById('tab-dashboard').classList.contains('active');
+  if (dashboardActive) renderDashboard();
+}
+
+function startRealtimeListeners() {
+  ['categories', 'budgets', 'suppliers', 'orders', 'quotes', 'app_users'].forEach(key => {
+    db.collection('app_data').doc(key).onSnapshot(
+      (doc) => {
+        if (!doc.exists) return;
+        try {
+          applyIncomingData(key, JSON.parse(doc.data().value));
+          setSyncStatus('ok');
+        } catch (e) {
+          console.error('Erro ao processar atualização de', key, e);
+        }
+      },
+      (err) => {
+        setSyncStatus('error');
+        console.error('Erro de sincronização em', key, err);
+      }
+    );
+  });
+}
+
+// Preenche a Data de Compra de pedidos antigos (já Comprado/Entregue) que ainda não têm essa data.
+// Primeiro tenta usar a data da cotação vinculada; se não houver nenhuma, usa a Data de Solicitação
+// como aproximação (só pra dados antigos que nunca tiveram cotação registrada).
+// Roda uma única vez, é seguro rodar de novo (não sobrescreve datas já preenchidas).
+async function migrarDataCompraAntiga() {
+  let alterou = false;
+  orders.forEach(o => {
+    if (['Comprado', 'Entregue'].includes(o.status) && !o.dataCompra) {
+      const quoteVinculada = quotes.find(q => {
+        const ids = q.pedidoIds || (q.pedidoId ? [q.pedidoId] : []);
+        return ids.includes(o.id);
+      });
+      if (quoteVinculada && quoteVinculada.data) {
+        o.dataCompra = quoteVinculada.data;
+        alterou = true;
+      } else if (o.dataSolicitacao) {
+        o.dataCompra = o.dataSolicitacao;
+        alterou = true;
+      }
+    }
+  });
+  if (alterou) {
+    await storageSet('orders', orders);
+  }
+}
+
+async function startApp() {
+  populateCategorySelect();
+  await loadAll();
+  await migrarDataCompraAntiga();
+  renderBudgetTable();
+  renderSuppliersTable();
+  renderOrdersTable();
+  renderQuotesTable();
+  startRealtimeListeners(); // a partir daqui, qualquer alteração do outro usuário aparece automaticamente
+}
+
+async function init() {
+  await loadUsers();
+  const autoLoggedIn = await tryAutoLogin();
+  if (!autoLoggedIn) showLoginScreen();
+}
+
+init();
+</script>
+
+</body>
+</html>
